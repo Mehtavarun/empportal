@@ -1,0 +1,75 @@
+<html>
+  <head>
+    <link
+      rel="stylesheet"
+      href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css"
+      integrity="sha384-Gn5384xqQ1aoWXA+058RXPxPg6fy4IWvTNh0E263XmFcJlSAwiGgFAW/dAiS6JXm"
+      crossorigin="anonymous"
+    ></link>
+    <script
+      src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/js/bootstrap.min.js"
+      integrity="sha384-JZR6Spejh4U02d8jOt6vLEHfe/JQGiRRSQQxSfFWpi1MquVdAyjUar5+76PVCmYl"
+      crossorigin="anonymous"
+    >
+  </script>
+  <script>
+    async function onload() {
+      try{
+        const token = localStorage.getItem('token');
+        const userId = localStorage.getItem('userId');
+        if(token === "-1" || token.trim().length === 0) {
+          const userResponse = await fetch("/api/user/validate", {
+            method: "GET",
+            headers:{
+              'Content-Type': 'application/json',
+              'Authorization': 'Bearer ' + token
+            }
+          }
+          );
+          const userResult = await userResponse.json();
+          if (userResult.status === 401) {
+            window.location.replace('/login');
+            return;
+          }
+        }
+        const res = await fetch("/api/jobs", {
+          method: "GET",
+          headers:{
+            'Content-Type': 'application/json',
+            'Authorization': 'Bearer ' + token
+          }
+        }
+        );
+        const result = await res.json();
+        if (result.status === 401) {
+          window.location.replace('/login');
+          return;
+        }
+        if (res.ok) {
+          const list = document.getElementById("jobsList");
+          result.map(element => {
+            const {_id, projectName, role, technologies} = element;
+            list.insertAdjacentHTML('beforeend', 
+            `<li class="list-group-item"><b>Project:</b> ${projectName} <br> <b>Role:</b> ${role} <br> <b>Technologies:</b> ${technologies}</li>
+            <a href="/jobs/${_id}">Open</a> ${role === 'MNG' ? `<a href="/jobs/update/${_id}">Edit</a><br>` : ``}`)
+          });
+        } else {
+          alert('some error occured: ' + res.status())
+        }
+      } catch (e) {
+        console.log('Error: '+ e.message)
+        alert('some error occured');
+      }
+    }
+  </script>
+    <title>EmpPortal</title>
+  </head>
+  <body class="container" onload="onload()">
+    <%- include('../titleBar.ejs') %>
+    <h3 class="mt-5">Jobs</h3>
+    
+      <ul id="jobsList" class="list-group">
+        
+      </ul>
+  </body>
+</html>

@@ -1,0 +1,116 @@
+<html>
+  <head>
+    <link
+      rel="stylesheet"
+      href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css"
+      integrity="sha384-Gn5384xqQ1aoWXA+058RXPxPg6fy4IWvTNh0E263XmFcJlSAwiGgFAW/dAiS6JXm"
+      crossorigin="anonymous"
+    ></link>
+    <script
+      src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/js/bootstrap.min.js"
+      integrity="sha384-JZR6Spejh4U02d8jOt6vLEHfe/JQGiRRSQQxSfFWpi1MquVdAyjUar5+76PVCmYl"
+      crossorigin="anonymous"
+    ></script>
+    <script>
+      const openingId = window.location.pathname.split("/")[2];
+      const token = localStorage.getItem('token');
+      if(!token || token.trim().length === 0) {
+        window.location.replace('/login');
+      }
+      async function onload() {
+        try{
+          const res = await fetch(`/api/openings/${openingId}`, {
+            method:"GET",
+            headers:{
+              'Content-Type': 'application/json',
+              'Authorization': 'Bearer ' + token
+            }
+          }
+        );
+        if (res.status === 401) {
+          window.location.replace('/login');
+          return;
+        }
+        if (res.ok) {
+          const result = await res.json();
+          const {projectName, clientName, technologies, jobRole, jobDescription, active} = result;
+          document.getElementById('projectName').innerText = `ProjectName: ${projectName}`;
+          document.getElementById('clientName').innerText = `ClientName: ${clientName}`;
+          document.getElementById('jobDescription').innerText = `jobDescription: ${jobDescription}`;
+          document.getElementById('jobRole').innerText = `jobRole: ${jobRole}`;
+          document.getElementById('technologies').innerText = `Technologies: ${technologies}`;
+
+          const button = document.getElementById('applyBtn');
+          if (active) {
+            const checkOpening = await fetch(`/api/openings/check/${openingId}`, {
+                method:"GET",
+                headers:{
+                  'Content-Type': 'application/json',
+                  'Authorization': 'Bearer ' + token
+                }
+              }
+            );
+            const checkRes = await checkOpening.json();
+            if (!checkRes.isManager) {
+              if (checkOpening.status === 200) {
+                button.innerText = `Apply`;
+              } else if (checkOpening.status === 409) {
+                button.innerText = `Already Applied`;
+                button.setAttribute('disabled', true);
+              }        
+            } else {
+              button.innerText = `Cannot Apply`;
+              button.setAttribute('disabled', true);
+            }
+          } else {
+            button.setAttribute('disabled', true); 
+          }
+          } else {
+          alert('some error occured: ' + res.status())
+        }
+      } catch (e) {
+        console.log('Error: '+ e.message)
+        alert('some error occured');
+      }
+    }
+
+    async function applyToOpening() {
+      try{
+          const res = await fetch(`/api/openings/apply/${openingId}`, {
+            method:"GET",
+            headers:{
+              'Content-Type': 'application/json',
+              'Authorization': 'Bearer ' + token
+            }
+          }
+        );
+        if (res.status === 401) {
+          window.location.replace('/login');
+          return;
+        }
+        if (res.ok) {
+          alert('successfully applied');
+          const button = document.getElementById('applyBtn');
+          button.innerText = `Applied`;
+          button.setAttribute('disabled', true);
+        }
+      }catch(err){
+        console.log('Error: '+ e.message)
+        alert('some error occured');
+      }
+    }
+    </script>
+    <title><%= title %></title>
+  </head>
+  <body class="container" onload="onload()">
+    <%- include('../shared/titleBar.ejs') %>
+    <h3 class="mt-5" id="projectName"></h3>
+    <ul>
+      <li><h4 id="clientName"></h4></li>
+      <li> <h4 id="technologies"> </h4></li>
+      <li> <h4 id="jobRole"> </h4></li>
+      <li> <h4 id="jobDescription"> </h4></li>
+    </ul>
+    <button type="button" class="btn btn-success" id="applyBtn" onclick="applyToOpening()"></button>
+  </body>
+</html>
